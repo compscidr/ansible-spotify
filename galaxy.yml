@@ -1,0 +1,13 @@
+---
+namespace: compscidr
+name: spotify
+authors:
+    - Jason Ernst <ernstjason1@gmail.com>
+description: Installs spotify
+license_file: LICENSE
+readme: README.md
+version: 0.0.1
+repository: https://github.com/compscidr/ansible-spotify
+tags:
+    - spotify
+    - application

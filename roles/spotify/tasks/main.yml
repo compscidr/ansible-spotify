@@ -1,0 +1,26 @@
+---
+- name: Install spotify apt keys
+  tags: spotify
+  become: true
+  ansible.builtin.apt_key:
+    url: https://download.spotify.com/debian/pubkey_6224F9941A8AA6D1.gpg
+    id: 63CBEEC9006602088F9B19326224F9941A8AA6D1
+    state: present
+    keyring: /usr/share/keyrings/spotify-archive-keyring.gpg
+
+- name: Install spotify repo
+  tags: spotify
+  become: true
+  ansible.builtin.apt_repository:
+    repo: >
+      deb [arch={{ [ansible_architecture] | map('extract', spotify_deb_architecture) | first }} signed-by=/usr/share/keyrings/spotify-archive-keyring.gpg]
+      http://repository.spotify.com stable non-free
+    state: present
+
+- name: Install spotify
+  tags: spotify
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    name: spotify-client
+    state: present
