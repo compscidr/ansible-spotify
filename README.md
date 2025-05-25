@@ -20,3 +20,12 @@ Use the role(s) in a playbook:
   roles:
     - spotify
 ```
+
+## Testing:
+Using molecule:
+```
+python -m venv venv
+. venv/bin/activate
+pip install molecule molecule-docker passlib
+molecule test
+```

@@ -1,0 +1,10 @@
+---
+- name: Install python3-debian
+  hosts: all
+  tasks:
+    - name: Ensure python3-debian is installed
+      become: true
+      ansible.builtin.apt:
+        update_cache: true
+        pkg:
+          - python3-debian
