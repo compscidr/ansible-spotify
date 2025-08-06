@@ -1,5 +1,8 @@
 name: ansible-lint
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 jobs:
   lint:
@@ -31,5 +34,3 @@ jobs:
       - name: Run Molecule Test
         run: |
           molecule test --all
-          molecule converge --all
-          molecule verify --all
