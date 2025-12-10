@@ -48,12 +48,13 @@
 - name: Dearmor Spotify GPG key
   tags: spotify
   become: true
-  ansible.builtin.shell:
+  ansible.builtin.command:
     cmd: >-
       gpg --dearmor -o
       /etc/apt/trusted.gpg.d/spotify-2024-11-13-C85668DF69375001.gpg
       /tmp/spotify.gpg.asc
   when: not spotify_key.stat.exists
+  changed_when: true
 
 - name: Remove temporary Spotify GPG key file
   tags: spotify
