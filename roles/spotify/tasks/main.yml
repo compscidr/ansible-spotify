@@ -1,8 +1,9 @@
 ---
-# Note: We currently use the old .list format because Spotify's package creates and expects this format.
-# If Spotify updates to use .sources (DEB822) format in the future, we should switch back to using
-# deb822_repository module and remove these cleanup tasks. This prevents duplicate repository warnings
-# when Spotify auto-updates itself.
+# Note: We currently use the old .list format because Spotify's package
+# creates and expects this format. If Spotify updates to use .sources
+# (DEB822) format in the future, we should switch back to using
+# deb822_repository module and remove these cleanup tasks. This prevents
+# duplicate repository warnings when Spotify auto-updates itself.
 - name: Remove old playbook artifacts (new-format sources file)
   tags: spotify
   become: true
@@ -17,24 +18,41 @@
     path: /etc/apt/keyrings/spotify.asc
     state: absent
 
-- name: Ensure required packages are installed
+- name: Ensure gnupg is installed
   tags: spotify
   become: true
   ansible.builtin.apt:
-    name:
-      - gnupg
-      - curl
+    name: gnupg
     state: present
     update_cache: true
 
 # Note: The URL has .gpg extension but provides ASCII-armored format
-# We dearmor it to binary and save to trusted.gpg.d matching Spotify's naming convention
-- name: Download and install Spotify GPG key
+# We dearmor it to binary and save to trusted.gpg.d matching Spotify's
+# naming convention
+- name: Download Spotify GPG key
+  tags: spotify
+  become: true
+  ansible.builtin.get_url:
+    url: https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg
+    dest: /tmp/spotify.gpg.asc
+    mode: '0644'
+
+- name: Dearmor Spotify GPG key
   tags: spotify
   become: true
   ansible.builtin.shell:
-    cmd: curl -sS https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/spotify-2024-11-13-C85668DF69375001.gpg
+    cmd: >-
+      gpg --dearmor -o
+      /etc/apt/trusted.gpg.d/spotify-2024-11-13-C85668DF69375001.gpg
+      /tmp/spotify.gpg.asc
     creates: /etc/apt/trusted.gpg.d/spotify-2024-11-13-C85668DF69375001.gpg
+
+- name: Remove temporary Spotify GPG key file
+  tags: spotify
+  become: true
+  ansible.builtin.file:
+    path: /tmp/spotify.gpg.asc
+    state: absent
 
 - name: Add spotify apt repository (matching Spotify's official format)
   tags: spotify
