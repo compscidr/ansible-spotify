@@ -1,21 +1,53 @@
 ---
-- name: Add spotify apt repository and key
+# Note: We currently use the old .list format because Spotify's package creates and expects this format.
+# If Spotify updates to use .sources (DEB822) format in the future, we should switch back to using
+# deb822_repository module and remove these cleanup tasks. This prevents duplicate repository warnings
+# when Spotify auto-updates itself.
+- name: Remove old playbook artifacts (new-format sources file)
   tags: spotify
   become: true
-  ansible.builtin.deb822_repository:
-    name: spotify
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/spotify.sources
+    state: absent
+
+- name: Remove old playbook artifacts (keyrings key)
+  tags: spotify
+  become: true
+  ansible.builtin.file:
+    path: /etc/apt/keyrings/spotify.asc
+    state: absent
+
+- name: Ensure required packages are installed
+  tags: spotify
+  become: true
+  ansible.builtin.apt:
+    name:
+      - gnupg
+      - curl
     state: present
-    types: [deb]
-    uris: "http://repository.spotify.com"
-    suites: [stable]
-    components: [non-free]
-    signed_by: https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg
-    enabled: true
+    update_cache: true
+
+# Note: The URL has .gpg extension but provides ASCII-armored format
+# We dearmor it to binary and save to trusted.gpg.d matching Spotify's naming convention
+- name: Download and install Spotify GPG key
+  tags: spotify
+  become: true
+  ansible.builtin.shell:
+    cmd: curl -sS https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/spotify-2024-11-13-C85668DF69375001.gpg
+    creates: /etc/apt/trusted.gpg.d/spotify-2024-11-13-C85668DF69375001.gpg
+
+- name: Add spotify apt repository (matching Spotify's official format)
+  tags: spotify
+  become: true
+  ansible.builtin.apt_repository:
+    repo: "deb https://repository.spotify.com stable non-free"
+    filename: spotify
+    state: present
+    update_cache: true
 
 - name: Install spotify
   tags: spotify
   become: true
   ansible.builtin.apt:
-    update_cache: true
     name: spotify-client
     state: present
