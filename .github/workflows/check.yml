@@ -26,7 +26,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.x'
+          # Pinned to 3.12: Python 3.14+ requires ansible-core >= 2.20.0
+          # Current version constraint is ansible-core < 2.18
+          python-version: '3.12'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
