@@ -91,7 +91,10 @@
   tags: spotify
   become: true
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/etc/apt/keyrings/spotify.gpg] https://repository.spotify.com stable non-free"
+    # Note: we don't use the signed-by parameter here because the official Spotify
+    # repository does not use it. This is to ensure compatibility with Spotify's official
+    # repository setup.
+    repo: "deb https://repository.spotify.com stable non-free"
     filename: spotify
     state: present
     update_cache: true

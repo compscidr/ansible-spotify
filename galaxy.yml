@@ -6,7 +6,7 @@ authors:
 description: Installs spotify
 license_file: LICENSE
 readme: README.md
-version: 0.0.3
+version: 0.0.4
 repository: https://github.com/compscidr/ansible-spotify
 tags:
     - spotify
