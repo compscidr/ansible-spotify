@@ -67,9 +67,9 @@
   become: true
   ansible.builtin.command:
     cmd: gpg --with-colons --import-options show-only --import /tmp/spotify.gpg.asc
-  register: gpg_output
+  register: spotify_gpg_output
   changed_when: false
-  failed_when: "'C85668DF69375001' not in gpg_output.stdout"
+  failed_when: "'C85668DF69375001' not in spotify_gpg_output.stdout"
   when: not spotify_key.stat.exists
 
 - name: Dearmor Spotify GPG key to keyrings directory
