@@ -10,11 +10,18 @@
   ansible.builtin.file:
     path: /etc/apt/sources.list.d/spotify.sources
     state: absent
-- name: Remove old playbook artifacts (keyring key)
+- name: Remove old playbook artifacts (old keyring key location)
   tags: spotify
   become: true
   ansible.builtin.file:
     path: /etc/apt/keyrings/spotify.asc
+    state: absent
+
+- name: Remove old playbook artifacts (old trusted GPG key)
+  tags: spotify
+  become: true
+  ansible.builtin.file:
+    path: /etc/apt/trusted.gpg.d/spotify-C85668DF69375001.gpg
     state: absent
 
 - name: Ensure gnupg is installed
@@ -27,14 +34,21 @@
 
 # Note: Spotify's GPG key is provided in ASCII-armored format (text-based)
 # despite the .gpg extension in the URL. We convert it to binary format
-# using gpg --dearmor for compatibility with /etc/apt/trusted.gpg.d/
-# which expects binary GPG keys. The filename uses Spotify's key ID without
-# the date prefix to simplify maintenance.
+# using gpg --dearmor for use with signed-by in /etc/apt/keyrings/.
+# This scopes the key trust to only the Spotify repository.
+- name: Ensure /etc/apt/keyrings directory exists
+  tags: spotify
+  become: true
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
 - name: Check if Spotify GPG key already exists
   tags: spotify
   become: true
   ansible.builtin.stat:
-    path: /etc/apt/trusted.gpg.d/spotify-C85668DF69375001.gpg
+    path: /etc/apt/keyrings/spotify.gpg
   register: spotify_key
 
 - name: Download Spotify GPG key
@@ -48,16 +62,22 @@
     # publish checksums for their GPG keys
   when: not spotify_key.stat.exists
 
-- name: Dearmor Spotify GPG key
+- name: Verify Spotify GPG key fingerprint
   tags: spotify
   become: true
   ansible.builtin.command:
-    cmd: >-
-      gpg --dearmor -o
-      /etc/apt/trusted.gpg.d/spotify-C85668DF69375001.gpg
-      /tmp/spotify.gpg.asc
+    cmd: gpg --with-colons --import-options show-only --import /tmp/spotify.gpg.asc
+  register: gpg_output
+  changed_when: false
+  failed_when: "'C85668DF69375001' not in gpg_output.stdout"
   when: not spotify_key.stat.exists
-  changed_when: true
+
+- name: Dearmor Spotify GPG key to keyrings directory
+  tags: spotify
+  become: true
+  ansible.builtin.command:
+    cmd: gpg --dearmor -o /etc/apt/keyrings/spotify.gpg /tmp/spotify.gpg.asc
+    creates: /etc/apt/keyrings/spotify.gpg
 
 - name: Remove temporary Spotify GPG key file
   tags: spotify
@@ -71,7 +91,7 @@
   tags: spotify
   become: true
   ansible.builtin.apt_repository:
-    repo: "deb https://repository.spotify.com stable non-free"
+    repo: "deb [signed-by=/etc/apt/keyrings/spotify.gpg] https://repository.spotify.com stable non-free"
     filename: spotify
     state: present
     update_cache: true
