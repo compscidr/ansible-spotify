@@ -24,6 +24,13 @@
     path: /etc/apt/trusted.gpg.d/spotify-C85668DF69375001.gpg
     state: absent
 
+- name: Remove old playbook artifacts (keyring format key)
+  tags: spotify
+  become: true
+  ansible.builtin.file:
+    path: /etc/apt/keyrings/spotify.gpg
+    state: absent
+
 - name: Ensure gnupg is installed
   tags: spotify
   become: true
@@ -34,13 +41,13 @@
 
 # Note: Spotify's GPG key is provided in ASCII-armored format (text-based)
 # despite the .gpg extension in the URL. We convert it to binary format
-# using gpg --dearmor for use with signed-by in /etc/apt/keyrings/.
-# This scopes the key trust to only the Spotify repository.
-- name: Ensure /etc/apt/keyrings directory exists
+# using gpg --dearmor and place it in /etc/apt/trusted.gpg.d/ to match
+# Spotify's official repository setup without using signed-by.
+- name: Ensure /etc/apt/trusted.gpg.d directory exists
   tags: spotify
   become: true
   ansible.builtin.file:
-    path: /etc/apt/keyrings
+    path: /etc/apt/trusted.gpg.d
     state: directory
     mode: '0755'
 
@@ -48,7 +55,7 @@
   tags: spotify
   become: true
   ansible.builtin.stat:
-    path: /etc/apt/keyrings/spotify.gpg
+    path: /etc/apt/trusted.gpg.d/spotify.gpg
   register: spotify_key
 
 - name: Download Spotify GPG key
@@ -72,12 +79,12 @@
   failed_when: "'C85668DF69375001' not in spotify_gpg_output.stdout"
   when: not spotify_key.stat.exists
 
-- name: Dearmor Spotify GPG key to keyrings directory
+- name: Dearmor Spotify GPG key to trusted.gpg.d directory
   tags: spotify
   become: true
   ansible.builtin.command:
-    cmd: gpg --dearmor -o /etc/apt/keyrings/spotify.gpg /tmp/spotify.gpg.asc
-    creates: /etc/apt/keyrings/spotify.gpg
+    cmd: gpg --dearmor -o /etc/apt/trusted.gpg.d/spotify.gpg /tmp/spotify.gpg.asc
+    creates: /etc/apt/trusted.gpg.d/spotify.gpg
 
 - name: Remove temporary Spotify GPG key file
   tags: spotify
@@ -87,11 +94,14 @@
     state: absent
   when: not spotify_key.stat.exists
 
-- name: Add spotify apt repository (matching Spotify's official format)
+- name: Add spotify apt repository
   tags: spotify
   become: true
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/etc/apt/keyrings/spotify.gpg] https://repository.spotify.com stable non-free"
+    # Note: We place the GPG key in /etc/apt/trusted.gpg.d/ and don't use signed-by
+    # to match Spotify's official repository setup. The key is automatically trusted
+    # by apt from this location.
+    repo: "deb https://repository.spotify.com stable non-free"
     filename: spotify
     state: present
     update_cache: true
