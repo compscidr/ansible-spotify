@@ -10,7 +10,6 @@
   ansible.builtin.file:
     path: /etc/apt/sources.list.d/spotify.sources
     state: absent
-
 - name: Remove old playbook artifacts (keyring key)
   tags: spotify
   become: true
