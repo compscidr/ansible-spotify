@@ -11,7 +11,7 @@
     path: /etc/apt/sources.list.d/spotify.sources
     state: absent
 
-- name: Remove old playbook artifacts (keyrings key)
+- name: Remove old playbook artifacts (keyring key)
   tags: spotify
   become: true
   ansible.builtin.file:
@@ -26,14 +26,16 @@
     state: present
     update_cache: true
 
-# Note: The URL has .gpg extension but provides ASCII-armored format
-# We dearmor it to binary and save to trusted.gpg.d matching Spotify's
-# naming convention
+# Note: Spotify's GPG key is provided in ASCII-armored format (text-based)
+# despite the .gpg extension in the URL. We convert it to binary format
+# using gpg --dearmor for compatibility with /etc/apt/trusted.gpg.d/
+# which expects binary GPG keys. The filename uses Spotify's key ID without
+# the date prefix to simplify maintenance.
 - name: Check if Spotify GPG key already exists
   tags: spotify
   become: true
   ansible.builtin.stat:
-    path: /etc/apt/trusted.gpg.d/spotify-2024-11-13-C85668DF69375001.gpg
+    path: /etc/apt/trusted.gpg.d/spotify-C85668DF69375001.gpg
   register: spotify_key
 
 - name: Download Spotify GPG key
@@ -43,6 +45,8 @@
     url: https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg
     dest: /tmp/spotify.gpg.asc
     mode: '0644'
+    # Note: Checksum validation not implemented as Spotify doesn't
+    # publish checksums for their GPG keys
   when: not spotify_key.stat.exists
 
 - name: Dearmor Spotify GPG key
@@ -51,7 +55,7 @@
   ansible.builtin.command:
     cmd: >-
       gpg --dearmor -o
-      /etc/apt/trusted.gpg.d/spotify-2024-11-13-C85668DF69375001.gpg
+      /etc/apt/trusted.gpg.d/spotify-C85668DF69375001.gpg
       /tmp/spotify.gpg.asc
   when: not spotify_key.stat.exists
   changed_when: true
