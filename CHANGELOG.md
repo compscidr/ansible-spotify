@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.5
+* Updated expired Spotify GPG signing key from C85668DF69375001 to 5384CE82BA52C83A
+* Added automatic detection and removal of the old expired key on existing installations
+
 ## 0.0.4
 * Fixed the apt source to remove the signed-by
 

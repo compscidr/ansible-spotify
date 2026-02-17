@@ -58,11 +58,36 @@
     path: /etc/apt/trusted.gpg.d/spotify.gpg
   register: spotify_key
 
+- name: Check if existing Spotify GPG key contains expired key
+  tags: spotify
+  become: true
+  ansible.builtin.command:
+    cmd: gpg --no-default-keyring --keyring /etc/apt/trusted.gpg.d/spotify.gpg --list-keys C85668DF69375001
+  register: spotify_old_key_check
+  changed_when: false
+  failed_when: false
+  when: spotify_key.stat.exists
+
+- name: Remove expired Spotify GPG key (C85668DF69375001)
+  tags: spotify
+  become: true
+  ansible.builtin.file:
+    path: /etc/apt/trusted.gpg.d/spotify.gpg
+    state: absent
+  when: spotify_key.stat.exists and spotify_old_key_check.rc == 0
+
+- name: Re-check if Spotify GPG key exists after cleanup
+  tags: spotify
+  become: true
+  ansible.builtin.stat:
+    path: /etc/apt/trusted.gpg.d/spotify.gpg
+  register: spotify_key
+
 - name: Download Spotify GPG key
   tags: spotify
   become: true
   ansible.builtin.get_url:
-    url: https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg
+    url: https://download.spotify.com/debian/pubkey_5384CE82BA52C83A.gpg
     dest: /tmp/spotify.gpg.asc
     mode: '0644'
     # Note: Checksum validation not implemented as Spotify doesn't
@@ -76,7 +101,7 @@
     cmd: gpg --with-colons --import-options show-only --import /tmp/spotify.gpg.asc
   register: spotify_gpg_output
   changed_when: false
-  failed_when: "'C85668DF69375001' not in spotify_gpg_output.stdout"
+  failed_when: "'5384CE82BA52C83A' not in spotify_gpg_output.stdout"
   when: not spotify_key.stat.exists
 
 - name: Dearmor Spotify GPG key to trusted.gpg.d directory
