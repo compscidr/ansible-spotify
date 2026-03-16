@@ -30,11 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install "ansible-core>=2.20,<2.21" molecule molecule-docker passlib
+          pip install "ansible-core>=2.20,<2.21" "molecule>=25.1.0" "molecule-plugins[docker]>=25.8.12" docker passlib
       - name: Run Molecule Test
-        env:
-          # molecule-docker's destroy playbook uses bare string conditionals
-          # which ansible-core 2.20 rejects by default
-          ANSIBLE_CONDITIONAL_BARE_VARS: "false"
         run: |
           molecule test --all
